@@ -139,6 +139,7 @@ class Tokenizer(object):
                  lower=True,
                  split=' ',
                  char_level=False,
+                 ngram_length=1,
                  **kwargs):
         # Legacy support
         if 'nb_words' in kwargs:
@@ -156,6 +157,7 @@ class Tokenizer(object):
         self.num_words = num_words
         self.document_count = 0
         self.char_level = char_level
+        self.ngram_length = ngram_length
 
     def fit_on_texts(self, texts):
         """Updates internal vocabulary based on a list of texts.
@@ -169,10 +171,13 @@ class Tokenizer(object):
         self.document_count = 0
         for text in texts:
             self.document_count += 1
-            seq = text if self.char_level else text_to_word_sequence(text,
+            seq = list(text) if self.char_level else text_to_word_sequence(text,
                                                                      self.filters,
                                                                      self.lower,
                                                                      self.split)
+            if self.ngram_length > 1:
+                seq.extend(list(set(zip(*[seq[i:] for i in range(self.ngram_length)]))))
+
             for w in seq:
                 if w in self.word_counts:
                     self.word_counts[w] += 1
@@ -207,6 +212,8 @@ class Tokenizer(object):
         self.document_count = len(sequences)
         self.index_docs = {}
         for seq in sequences:
+            if self.ngram_length > 1:
+                seq.extend(list(set(zip(*[seq[i:] for i in range(self.ngram_length)]))))
             seq = set(seq)
             for i in seq:
                 if i not in self.index_docs:
